@@ -673,19 +673,36 @@ function switchAdminPanel(id) {
   if (id === 'keys')  renderKeys();
 }
 
-function generateKey() {
-  const seg = () => Math.random().toString(36).substr(2,4).toUpperCase().padEnd(4,'X').substring(0,4);
-  const key  = [seg(),seg(),seg(),seg()].join('-');
-  const product  = document.getElementById('key-product').value;
+const API_URL    = 'https://YOUR-BOT.up.railway.app';  // FILL: твой Railway URL
+const API_SECRET = 'CHANGE_ME_32_CHARS_MIN';             // FILL: тот же что в боте
+
+async function generateKey() {
   const duration = document.getElementById('key-duration').value;
   const label    = duration === '0' ? 'Lifetime' : duration + ' days';
-  const entry = { key, product, duration: label, status: 'active', created: now(), redeemedBy: null };
-  DB.keys = [...DB.keys, entry];
-  const el = document.getElementById('key-output');
-  el.textContent = key;
-  el.classList.remove('empty');
-  renderKeys();
-  toast('key generated');
+  const btn = document.querySelector('[onclick="generateKey()"]');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  try {
+    const res = await fetch(API_URL + '/api/admin/keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Secret': API_SECRET },
+      body: JSON.stringify({ count: 1, duration: label })
+    });
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const data = await res.json();
+    const key = data.keys[0];
+    // also save to local DB for display
+    DB.keys = [...DB.keys, { key, product: 'FemWare — Script', duration: label, status: 'active', created: now(), redeemedBy: null }];
+    const el = document.getElementById('key-output');
+    el.textContent = key;
+    el.classList.remove('empty');
+    renderKeys();
+    toast('key generated & sent to bot');
+  } catch(e) {
+    toast('API error — check Railway URL and secret');
+    console.error(e);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate';
+  }
 }
 
 function renderKeys() {
@@ -707,7 +724,14 @@ function renderKeys() {
     </div>`).join('');
 }
 
-function revokeKey(key) {
+async function revokeKey(key) {
+  try {
+    await fetch(API_URL + '/api/admin/revoke', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Secret': API_SECRET },
+      body: JSON.stringify({ key })
+    });
+  } catch(e) { console.error('revoke API error', e); }
   DB.keys = DB.keys.map(k => k.key === key ? {...k, status: 'revoked'} : k);
   renderKeys();
   toast('key revoked');
