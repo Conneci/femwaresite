@@ -742,18 +742,15 @@ function toast(msg) {
 /* ─── checkout ─── */
 function confirmPayment() {
   if (!DB.session) { openModal('login'); return; }
-  // Check if user already has a key (payment verification)
-  const existing = DB.keys.find(k => k.redeemedBy === DB.session.username && k.status === 'active');
-  if (!existing) {
-    // generate key and assign to user
-    const seg = () => Math.random().toString(36).substr(2,4).toUpperCase().padEnd(4,'X').substring(0,4);
-    const key = [seg(),seg(),seg(),seg()].join('-');
-    const entry = { key, product: 'FemWare — Script', duration: 'Lifetime', status: 'active', created: now(), redeemedBy: DB.session.username };
-    DB.keys = [...DB.keys, entry];
-    save();
-  }
-  toast('Payment confirmed! Redirecting to your account...');
-  setTimeout(() => { showPage('dash'); applySession(); }, 800);
+  // generate key and assign to user
+  const seg = () => Math.random().toString(36).substr(2,4).toUpperCase().padEnd(4,'X').substring(0,4);
+  const key = [seg(),seg(),seg(),seg()].join('-');
+  const entry = { key, product: 'FemWare — Script', duration: 'Lifetime', status: 'active', created: now(), redeemedBy: DB.session.username };
+  DB.keys = [...DB.keys, entry];
+  // show result
+  document.getElementById('result-key').textContent = key;
+  document.getElementById('payment-result').style.display = 'block';
+  toast('Key saved to your profile!');
 }
 
 function goCheckout() {
@@ -858,7 +855,7 @@ applySession();
 
           <button id="get-key-btn" onclick="confirmPayment()" style="display:none;padding:.75rem;border-radius:8px;border:1px solid rgba(0,220,130,.3);background:rgba(0,220,130,.08);color:#00dc82;font-family:var(--sans);font-size:.875rem;font-weight:600;cursor:pointer;width:100%;transition:opacity .15s;"
             onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
-            Get My Key
+            Get Key
           </button>
 
           <div id="payment-result" style="display:none;background:rgba(0,220,130,.08);border:1px solid rgba(0,220,130,.25);border-radius:8px;padding:1rem;">
